@@ -39,14 +39,4 @@ prompt = () => {
 };
 
 
----
 
-### Steps to Save This on GitHub:
-1. **Save the file locally**:
-   - Use an appropriate file name like `mongoshrc.md` if you want Markdown rendering or `mongoshrc.js` if it's for code execution.
-
-2. **Add it to GitHub**:
-   - Upload the file to your repository and commit it.
-   - If saved as `.md`, GitHub will render it as a well-formatted document.
-
-Let me know if you need further adjustments!
