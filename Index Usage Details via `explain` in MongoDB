@@ -1,61 +1,53 @@
-# Index Usage Details via `explain` in MongoDB
+Index Usage Details via explain in MongoDB
 
-## Overview
-
-This guide demonstrates how to analyze and optimize MongoDB queries using the `explain()` method. You'll learn how to:
-
+Overview
+This guide demonstrates how to analyze and optimize MongoDB queries using the explain() method. You'll learn how to:
 - Understand index usage
 - Evaluate query performance
 - Apply insights to optimize your MongoDB collections
 
 ---
 
-## Table of Contents
-
-1. [Introduction](#introduction)
-2. [Why Use `explain()`?](#why-use-explain)
-3. [Key Commands](#key-commands)
-4. [Examples](#examples)
-5. [Additional Resources](#additional-resources)
+Table of Contents
+1. Introduction
+2. Why Use explain()?
+3. Key Commands
+4. Examples
+5. Additional Resources
 
 ---
 
-## Introduction
-
-MongoDB’s `explain()` provides details about how a query is executed. It helps in understanding:
-
+Introduction
+MongoDB’s explain() provides details about how a query is executed. It helps in understanding:
 - Index efficiency
 - Execution plans
 - Bottlenecks in performance
 
 ---
 
-## Why Use `explain()`?
-
-Using `explain()`, you can identify:
-
+Why Use explain()?
+Using explain(), you can identify:
 - Whether your query uses an index
 - The type of index used
 - The number of documents scanned vs. returned
 
 ---
 
-## Key Commands
+Key Commands
 
-### Basic Syntax
-
-```javascript
+Basic Syntax
 db.collection.find(query).explain();
 
+Execution Stages
+- queryPlanner: High-level overview of the query plan.
+- executionStats: Detailed statistics on query execution.
+- allPlansExecution: All possible query plans considered.
 
-## Execution Stages
-queryPlanner: High-level overview of the query plan.
-executionStats: Detailed statistics on query execution.
-allPlansExecution: All possible query plans considered.
+---
 
 Examples
-Simple Query Explanation
 
+Simple Query Explanation
 db.users.find({ age: { $gt: 25 } }).explain("executionStats");
 
 Output:
@@ -68,7 +60,22 @@ Output:
   }
 }
 
-##  Using Indexes
+Using Indexes
 db.users.createIndex({ age: 1 });
 db.users.find({ age: { $gt: 25 } }).explain();
 
+---
+
+Additional Resources
+- MongoDB Documentation: https://www.mongodb.com/docs/manual/reference/explain/
+- Indexing Best Practices: https://www.mongodb.com/docs/manual/indexes/
+
+---
+
+Contributing
+Contributions are welcome! Feel free to fork this repository and submit a pull request.
+
+---
+
+License
+This project is licensed under the MIT License.
