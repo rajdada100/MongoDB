@@ -1,4 +1,4 @@
-# Index Usage Details via `explain` in MongoDB
+## Index Usage Details via `explain` in MongoDB
 
 ## Overview
 
@@ -41,6 +41,7 @@ Using `explain()`, you can identify:
 ### Basic Syntax
 ```javascript
 db.collection.find(query).explain();
+
 
 ## Execution Stages
 queryPlanner: High-level overview of the query plan.
