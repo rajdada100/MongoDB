@@ -1,8 +1,9 @@
-## Index Usage Details via `explain` in MongoDB
+# Index Usage Details via `explain` in MongoDB
 
 ## Overview
 
 This guide demonstrates how to analyze and optimize MongoDB queries using the `explain()` method. You'll learn how to:
+
 - Understand index usage
 - Evaluate query performance
 - Apply insights to optimize your MongoDB collections
@@ -10,6 +11,7 @@ This guide demonstrates how to analyze and optimize MongoDB queries using the `e
 ---
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [Why Use `explain()`?](#why-use-explain)
 3. [Key Commands](#key-commands)
@@ -21,6 +23,7 @@ This guide demonstrates how to analyze and optimize MongoDB queries using the `e
 ## Introduction
 
 MongoDB’s `explain()` provides details about how a query is executed. It helps in understanding:
+
 - Index efficiency
 - Execution plans
 - Bottlenecks in performance
@@ -30,6 +33,7 @@ MongoDB’s `explain()` provides details about how a query is executed. It helps
 ## Why Use `explain()`?
 
 Using `explain()`, you can identify:
+
 - Whether your query uses an index
 - The type of index used
 - The number of documents scanned vs. returned
@@ -39,6 +43,7 @@ Using `explain()`, you can identify:
 ## Key Commands
 
 ### Basic Syntax
+
 ```javascript
 db.collection.find(query).explain();
 
