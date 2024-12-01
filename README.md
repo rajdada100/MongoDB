@@ -11,3 +11,4 @@ This repository contains examples of various MongoDB index types. Each file demo
 6. Wildcard Index
 7. TTL Index
 8. Partial Index
+9. Sparse Index
