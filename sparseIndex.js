@@ -32,6 +32,6 @@ db.collection("myCollection").find({ email: { $exists: false } });
 
 How Sparse Indexes Work
 
-Sparse indexes exclude documents where the indexed field is either null or does not exist.
-They are beneficial when you have optional fields that are not present in all documents.
+* Sparse indexes exclude documents where the indexed field is either null or does not exist.
+* They are beneficial when you have optional fields that are not present in all documents.
 
