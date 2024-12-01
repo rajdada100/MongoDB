@@ -8,7 +8,6 @@ To view all indexes on a collection, use the following command:
 ```javascript
 db.collection.getIndexes();
 ```
-
 Analyze Index Usage
 MongoDB provides a way to track index usage statistics using the $indexStats aggregation stage.
 ```javascript
