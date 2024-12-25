@@ -1,0 +1,139 @@
+https://jira.home.com/browse/COIR-84056
+mongo authentication implementation (standard) in ARIV - ML service
+
+password :prodqaml4you
+
+[mongouser@n3pp03spcmon01 ~]$ ps -ef|grep mongod
+mongous+  6918     1  6 Feb24 ?        3-02:09:21 /home/mongo_bin1/4.2/mongod --config /home/mongouser/config/prodqa2_primary.cfg
+mongous+ 15633     1  1 07:53 ?        00:04:26 /home/mongo_bin1/4.2/mongod --setParameter honorSystemUmask=true --config /home/mongou                             ser/config/prodqa3_primary.cfg
+mongous+ 18726     1  0 Feb16 ?        08:53:08 /home/mongo_bin1/4.2/mongod --config /home/mongouser/config/prodqa3_arb.cfg
+mongous+ 18786     1  0 Feb16 ?        09:03:29 /home/mongo_bin3/4.2/mongod --config /home/mongouser/config/prodqa2_arb.cfg
+mongous+ 18845     1  0 Feb16 ?        09:01:23 /home/mongo_bin3/4.2/mongod --config /home/mongouser/config/prodqa1_arb.cfg
+mongous+ 18928     1  3 Feb16 ?        1-17:47:39 /home/mongo_bin1/4.2/mongod --setParameter honorSystemUmask=true --config /home/mong                             ouser/config/prodqa1_primary.cfg
+mongous+ 19787     1  3 Feb16 ?        1-19:43:02 /home/mongo_bin1/4.2/mongod --config /home/mongouser/config/ml_test_mongo.cfg
+mongous+ 19846     1  3 Feb16 ?        1-20:47:34 /home/mongo_bin2/4.2/mongod --setParameter honorSystemUmask=true --config /home/mong                             ouser/config/prodqa1_secondary.cfg
+mongous+ 20152     1  3 Feb16 ?        1-16:59:55 /home/mongo_bin1/4.2/mongod --setParameter honorSystemUmask=true --config /home/mong                             ouser/config/prodqa3_secondary.cfg
+mongous+ 20624     1  5 Feb16 ?        3-02:33:20 /home/mongo_bin2/4.2/mongod --setParameter honorSystemUmask=true --config /home/mong                             ouser/config/prodqa2_secondary.cfg
+
+[mongouser@n3pp03spcmon01 ~]$ cat /home/mongouser/config/ml_test_mongo.cfg
+dbpath=/home/mongouser/data/ml_prodqa/
+logpath=/home/mongouser/logs/ml_prodqa/ml_prodqa.log
+logappend=true
+fork = true
+port=16500
+wiredTigerJournalCompressor = none
+wiredTigerCollectionBlockCompressor = none
+pidfilepath =/home/mongouser/pids/ml_test.pid
+bind_ip=0.0.0.0
+
+1. connect mongo primary service first to create root/admin user into mongodb
+
+/home/mongo_bin2/4.2/mongo --port 16500
+
+2. add root/admin db user (password need to discuss with  brij)
+
+use admin 
+
+db.createUser( 
+{ 
+user: "homeadmin", 
+pwd: prodqaml4you, 
+roles: [{ role: "root", db: "admin" }]
+} 
+) 
+
+
+---verify user is created or NOT
+db.getUser("homeadmin")
+
+3. Verify metadb, that two new columns are present in mdt_mongoserver_details table. 
+
+[oracle@n3qp01spcora04 ~]$ . ./DQAMETA_19c_env.sh
+[oracle@n3qp01spcora04 ~]$ sqlplus / as sysdba
+
+SQL*Plus: Release 19.0.0.0.0 - Production on Mon Apr 11 12:19:23 2022
+Version 19.8.0.0.0
+
+Copyright (c) 1982, 2020, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.8.0.0.0
+
+SQL> conn metadb/metadb
+Connected.
+SQL> show user
+USER is "METADB"
+
+USERNAME 
+PASSWORD 
+ 
+Skip the below column addition step, if columns are found, but if not found then, add above columns manually using below SQL. (However, this supposed to be added before): 
+
+SQL> alter table mdt_mongoserver_details add (USERNAME VARCHAR2(50), PASSWORD VARCHAR2(50)); 
+
+
+4. Update mdt_mongoserver_details in MetaDB with the username and password as specified in the above script.  '
+SQL> set line 450 pages 100
+select distinct username, password from mdt_mongoserver_details where password is null; SQL>
+
+no rows selected
+
+
+SQL> select count(*) from mdt_mongoserver_details;
+
+  COUNT(*)
+----------
+         2
+
+
+update mdt_mongoserver_details set username='homeadmin', password='prodqaml4you'; 
+select distinct username,password from mdt_mongoserver_details where password is not null; 
+commit; 
+
+Note: attach the screenshot of this SQL into the CCR. 
+select distinct username from mdt_mongoserver_details where password is not null; 
+Edit mongo config files to append below authentication parameter(s). 
+For standalone - Edit mongo config files 
+
+Eg: 
+auth=true 
+For replicaset – Refer below Step 6  
+
+
+
+5. How to connect to mongo post authentication is put in place? 
+
+/home/mongo_bin2/4.2/mongo --port 16500  -u "homeadmin" -p "prodqaml4you" --authenticationDatabase "admin" 
+
+
+Note: in case of deployment setup, the steps 1, 2, 3, 4 need to be executed few hours before the update deployment through a COIR request. 
+
+6. Setting up authentication in replicaset mongo setup: 
+
+ Example : DEVQA2 environment 
+
+A. Setup the keyfile and replicate the same to all mongo cluster hosts: 
+Note: Create the keyfile inside config folder of the cluster, and Name it specific to environment 
+
+openssl rand -base64 756 > /home/mongouser/mongo_3_2_0/config/devqa2.keyfile 
+
+chmod 400 /home/mongouser/mongo_3_2_0/config/devqa2.keyfile 
+
+
+eg:  
+
+For devqa2 it is named devqa2.keyfile 
+For APAC2 it will be APAC2.keyfile (since there is no seprarate shared setup)  
+For EU3, it can be name as: eu3_primary.keyfile, and for shared: eu3_shared.keyfile. 
+After creation of keyfile, just ensure that keyfile kept inside config folder is copied into /backup as part of db config backup job that’s runs periodically to ensure it is synced to DR site as well. 
+
+ 
+B. Append following entries in config files of all replicas (primary, secondary, arbiter) members: NOTE: DONOT restart any mongo service at this moment. 
+
+-- 
+
+auth=true 
+
+keyFile=/home/mongouser/mongo_3_2_0/config/devqa2.keyfile  
