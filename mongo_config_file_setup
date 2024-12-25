@@ -1,0 +1,27 @@
+[mongouser@n1np01spcmon04 ~]$ cat /home/mongouser/config/na4_spc_non_prod_mongo.cfg
+dbpath = /home2/mongouser/data/NA4_SPC_NON_PROD/
+logpath = /home2/mongouser/logs/na4_spc_non_prod_mongo.log
+pidfilepath=/home2/mongouser/pids/na4_spc_non_prod_mongo.pid
+oplogSize = 51200
+logappend = true
+port = 15000
+fork = true
+wiredTigerJournalCompressor = none
+wiredTigerCollectionBlockCompressor = none
+wiredTigerCacheSizeGB=32
+#httpinterface=true
+replSet=NA_non_PROD
+auth=true
+keyFile=/home/mongouser/config/NA4_Primary.keyfile
+bind_ip=0.0.0.0
+[mongouser@n1np01spcmon04 ~]$
+
+
+[mongouser@n1np01spcmon04 ~]$ ps -ef|grep mongod
+mongous+ 1441225       1 47 Oct09 ?        36-07:59:21 /home/mongouser/mongo_7.0.5/bin/mongod --setParameter honorSystemUmask=true --setParameter tcmallocAggressiveMemoryDecommit=1 --config /home/mongouser/config/na4_spc_non_prod_mongo.cfg
+mongous+ 1446192       1 99 Oct09 ?        94-13:50:12 /home/mongouser/mongo_7.0.5/bin/mongod --setParameter honorSystemUmask=true --setParameter tcmallocAggressiveMemoryDecommit=1 --config /home/mongouser/config/na4_spc_non_prod2_mongo.cfg
+mongous+ 1446946       1 21 Oct09 ?        16-03:30:30 /home/mongouser/mongo_7.0.5/bin/mongod --setParameter honorSystemUmask=true --setParameter tcmallocAggressiveMemoryDecommit=1 --config /home/mongouser/config/na4_spc_non_prod3_mongo.cfg
+mongous+ 1447658       1 10 Oct09 ?        7-17:07:14 /home/mongouser/mongo_7.0.5/bin/mongod --setParameter honorSystemUmask=true --setParameter tcmallocAggressiveMemoryDecommit=1 --config /home/mongouser/config/na4_spc_non_prod_shared_mongo.cfg
+mongous+ 2678011 2612904 99 05:32 ?        01:18:50 /home/mongouser/mongo_7.0.5/bin/mongodump --quiet --host n1np01spcmon04.ops.home --port 15000 -u homeadmin -p na4n4you --authenticationDatabase admin --db NA2PRD0002 -o /backup/mongodump/NA4_NONPROD/20241225_020102_p15000 --gzip
+mongous+ 2685411 2612904 99 06:00 ?        00:10:41 /home/mongouser/mongo_7.0.5/bin/mongodump --quiet --host n1np01spcmon04.ops.home --port 15000 -u homeadmin -p na4n4you --authenticationDatabase admin --db NA2SNB0002 -o /backup/mongodump/NA4_NONPROD/20241225_020102_p15000 --gzip
+mongous+ 2686115 2686075  0 06:03 pts/0    00:00:00 grep --color=auto mongod
