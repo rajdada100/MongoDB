@@ -1,90 +1,86 @@
-#!/bin/bash
+#!/bin/ksh
+###############################################################################
+# Script to Start MongoDB Services
+# Developed By: Raj Dada
+#-------------------------------------------------------------------------------
+# Script Name   : SC_MONGO_START.sh
+# Usage         : SC_MONGO_START.sh <userdetails.conf>
+###############################################################################
 
-# Check if required arguments are passed
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <environment.conf> <userdetails.conf>"
+# Ensure required argument is passed
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <userdetails.conf>"
     exit 1
 fi
 
-ENV_FILE=$1
-USERDETAILS_FILE=$2
+USERDETAILS_FILE=$1
 LOG_DIR="$HOME/log/mongo_cluster_start"
-CENTRAL_LOG_FILE="$HOME/central_log.log"
+CENTRAL_LOG_FILE="$HOME/log/central_service_start_log.log"
 FAILED_SERVERS=()
+ALL_SERVICES_UP=true  # Initialize the variable
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 
-# Read environment file for hostnames
-if [ ! -f "$ENV_FILE" ]; then
-    echo "Error: Parameter file $ENV_FILE not found."
+# Verify user details file exists
+if [ ! -f "$USERDETAILS_FILE" ]; then
+    echo "Error: User details file $USERDETAILS_FILE not found."
     exit 1
 fi
 
-# Read hostnames properly without HOSTNAMES=
-HOSTNAMES=$(cat "$ENV_FILE" | tr -d '[:space:]')  # Remove spaces and newlines
-IFS=',' read -r -a HOSTS <<< "$HOSTNAMES"
-
-# Process each server
-for HOST in "${HOSTS[@]}"; do
-    HOST=$(echo "$HOST" | tr -d '"')  # Remove unwanted quotes
+# Read server details from userdetails.conf
+while IFS=' ' read -r HOST USERNAME PASSWORD PORT; do
+    # Skip empty lines
+    if [ -z "$HOST" ] || [ -z "$PORT" ]; then
+        continue
+    fi
+    
     LOG_FILE="$LOG_DIR/${HOST}_start.log"
     echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
     echo "Processing $HOST..." | tee -a "$CENTRAL_LOG_FILE"
     echo -e "*******************************\n" | tee -a "$CENTRAL_LOG_FILE"
     
-    # Extract credentials from userdetails.conf
-    if [ ! -f "$USERDETAILS_FILE" ]; then
-        echo "Error: User details file $USERDETAILS_FILE not found." | tee -a "$CENTRAL_LOG_FILE"
-        exit 1
-    fi
-    
-    CREDENTIALS=$(grep -w "^$HOST" "$USERDETAILS_FILE")
-    USERNAME=$(echo "$CREDENTIALS" | awk '{print $2}')
-    PASSWORD=$(echo "$CREDENTIALS" | awk '{print $3}')
-    PORT=$(echo "$CREDENTIALS" | awk '{print $4}')
-    
-    if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ] || [ -z "$PORT" ]; then
-        echo "Error: Missing credentials for $HOST. Check $USERDETAILS_FILE." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
-        FAILED_SERVERS+=("$HOST")
-        continue
-    fi
-    
-    # Check if mongo_start.sh exists for the host
-    if ssh mongouser@$HOST "[ ! -f ~/mongo_start.sh ]"; then
+    # Check if mongo_start.sh exists on the host
+    if ssh -q -o BatchMode=yes mongouser@"$HOST" "[ ! -f ~/mongo_start.sh ]"; then
         echo "Error: mongo_start.sh not found on $HOST. Cannot start MongoDB." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
         FAILED_SERVERS+=("$HOST")
+        ALL_SERVICES_UP=false  # Mark failure
         continue
     fi
     
-    # Start the MongoDB service using the saved start command
-    echo "Starting MongoDB on $HOST..." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
-    ssh mongouser@$HOST "bash ~/mongo_start.sh"
+    # Start MongoDB service using saved start command
+    echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
+    echo "Starting Mongo services on $HOST..." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
+    echo -e "*******************************\n" | tee -a "$CENTRAL_LOG_FILE"
     
-    # Verify if the MongoDB service has started successfully
+    ssh -q -o BatchMode=yes mongouser@"$HOST" "bash ~/mongo_start.sh"
+    
+    # Verify if MongoDB service has started successfully
     sleep 5
-    if ! ssh mongouser@$HOST "pgrep -x mongod"; then
+    PORT_CHECK=$(ssh -q mongouser@"$HOST" "ss -tulnp | grep -w '$PORT'")
+
+    if [[ -z "$PORT_CHECK" ]]; then
         echo "Failed to start MongoDB on $HOST." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
         FAILED_SERVERS+=("$HOST")
+        ALL_SERVICES_UP=false  # Mark failure
     else
         echo "Successfully started MongoDB on $HOST." | tee -a "$LOG_FILE" "$CENTRAL_LOG_FILE"
     fi
-    
-    # Transfer logs to central log file
-    cat "$LOG_FILE" >> "$CENTRAL_LOG_FILE"
-done
 
-# Check final result
-if [ ${#FAILED_SERVERS[@]} -ne 0 ]; then
-    echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
-    echo "MongoDB cluster start encountered failures on the following servers:" | tee -a "$CENTRAL_LOG_FILE"
-    echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
-    printf '%s\n' "${FAILED_SERVERS[@]}" | tee -a "$CENTRAL_LOG_FILE"
-    echo -e "*******************************\n" | tee -a "$CENTRAL_LOG_FILE"
-    exit 1
-else
+    # Append logs to central log file
+    cat "$LOG_FILE" >> "$CENTRAL_LOG_FILE"
+
+done < "$USERDETAILS_FILE"  # This correctly closes the loop
+
+# Check final status
+if [ "$ALL_SERVICES_UP" = true ]; then
     echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
     echo "MongoDB cluster started successfully." | tee -a "$CENTRAL_LOG_FILE"
     echo -e "*******************************\n" | tee -a "$CENTRAL_LOG_FILE"
     exit 0
+else
+    echo -e "\n*******************************" | tee -a "$CENTRAL_LOG_FILE"
+    echo "MongoDB cluster start encountered failures." | tee -a "$CENTRAL_LOG_FILE"
+    echo -e "*******************************\n" | tee -a "$CENTRAL_LOG_FILE"
+    exit 1
 fi
